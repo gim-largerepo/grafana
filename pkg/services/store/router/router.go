@@ -60,23 +60,17 @@ func NewObjectStoreRouter(kinds kind.KindRegistry) ObjectStoreRouter {
 var _ ObjectStoreRouter = &standardStoreRouter{}
 
 func (r *standardStoreRouter) Route(ctx context.Context, grn *object.GRN) (ResourceRouteInfo, error) {
-	info := ResourceRouteInfo{
-		GRN: grn,
-	}
-
-	if grn == nil {
-		return info, fmt.Errorf("missing GRN")
-	}
+	info := ResourceRouteInfo{}
 
 	// Make sure the orgID is set
 	if grn.TenantId < 1 {
 		return info, fmt.Errorf("missing TenantId")
 	}
 	if grn.Kind == "" {
-		return info, fmt.Errorf("missing ResourceKind")
+		return info, fmt.Errorf("missing Kind")
 	}
 	if grn.UID == "" {
-		return info, fmt.Errorf("missing ResourceIdentifier")
+		return info, fmt.Errorf("missing UID")
 	}
 
 	kind, err := r.kinds.GetInfo(grn.Kind)
@@ -92,25 +86,29 @@ func (r *standardStoreRouter) Route(ctx context.Context, grn *object.GRN) (Resou
 	switch grn.Scope {
 	case models.ObjectStoreScopeDrive:
 		{
-			// Special folder handling in drive
+			// Special folder for
 			if grn.Kind == models.StandardKindFolder {
 				info.Key = fmt.Sprintf("%d/%s/%s/__folder.json", grn.TenantId, grn.Scope, grn.UID)
-				return info, nil
-			}
-			if kind.FileExtension != "" {
-				info.Key = fmt.Sprintf("%d/%s/%s.%s", grn.TenantId, grn.Scope, grn.UID, kind.FileExtension)
 			} else {
-				info.Key = fmt.Sprintf("%d/%s/%s-%s.json", grn.TenantId, grn.Scope, grn.UID, grn.Kind)
+				if kind.FileExtension != "" {
+					info.Key = fmt.Sprintf("%d/%s/%s.%s", grn.TenantId, grn.Scope, grn.UID, kind.FileExtension)
+				} else {
+					info.Key = fmt.Sprintf("%d/%s/%s-%s.json", grn.TenantId, grn.Scope, grn.UID, grn.Kind)
+				}
 			}
 		}
 	case models.ObjectStoreScopeEntity:
 		{
+			// kind as root folder
 			info.Key = fmt.Sprintf("%d/%s/%s/%s", grn.TenantId, grn.Scope, grn.Kind, grn.UID)
 		}
 	default:
-		return info, fmt.Errorf("unsupportes scope")
+		{
+			return info, fmt.Errorf("unsupported scope")
+		}
 	}
 
+	info.GRN = grn
 	return info, nil
 }
 
@@ -141,6 +139,7 @@ func (r *standardStoreRouter) RouteFromKey(ctx context.Context, key string) (Res
 	info.GRN.TenantId = tenantID
 	info.GRN.Scope = p2
 
+	// Human file system style
 	switch info.GRN.Scope {
 	case models.ObjectStoreScopeDrive:
 		{
@@ -173,7 +172,6 @@ func (r *standardStoreRouter) RouteFromKey(ctx context.Context, key string) (Res
 				info.GRN.Kind = k.ID
 			}
 		}
-
 	case models.ObjectStoreScopeEntity:
 		{
 			idx = strings.Index(key, "/")
@@ -181,9 +179,8 @@ func (r *standardStoreRouter) RouteFromKey(ctx context.Context, key string) (Res
 			info.GRN.Kind = key[:idx]
 			info.GRN.UID = key[idx+1:]
 		}
-
 	default:
-		return info, fmt.Errorf("unsupported scope")
+		return info, fmt.Errorf("unkown scope")
 	}
 	return info, nil
 }

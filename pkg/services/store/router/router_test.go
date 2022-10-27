@@ -29,7 +29,7 @@ func TestSimpleRouter(t *testing.T) {
 
 	scenarios := []routeScenario{{
 		Error: "missing TenantId",
-		GRN:   &object.GRN{Scope: "x"},
+		GRN:   &object.GRN{},
 	}, {
 		Error: "unknown kind",
 		GRN: &object.GRN{
