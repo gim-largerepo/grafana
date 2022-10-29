@@ -717,7 +717,7 @@ const rulesInSameGroupHaveInvalidFor = (
   rulerRules: RulerRulesConfigDTO | null | undefined,
   group: string,
   folder_: string,
-  everyDuration: number
+  everyDuration: string
 ) => {
   const folderObj: RulerRuleGroupDTO[] = (rulerRules && rulerRules[folder_]) ?? [];
   const groupObj = folderObj?.find((ruleGroup) => ruleGroup.name === group);
@@ -725,8 +725,11 @@ const rulesInSameGroupHaveInvalidFor = (
   const rulesSameGroup: RulerRuleDTO[] = groupObj?.rules ?? [];
 
   return rulesSameGroup.filter((rule: RulerRuleDTO) => {
-    const { forDuration } = getAlertInfo(rule);
-    return durationToMilliseconds(safeParseDurationstr(forDuration)) < everyDuration;
+    const { forDuration } = getAlertInfo(rule, everyDuration);
+    return (
+      durationToMilliseconds(safeParseDurationstr(forDuration)) <
+      durationToMilliseconds(safeParseDurationstr(everyDuration))
+    );
   });
 };
 
@@ -778,13 +781,13 @@ export const updateLotexNamespaceAndGroupAction = createAsyncThunk(
               groupfoldersForSource?.result,
               groupName,
               namespaceName,
-              durationToMilliseconds(safeParseDurationstr(groupInterval ?? ''))
+              groupInterval ?? '1m'
             );
             if (notValidRules.length > 0) {
               throw new Error(
                 `These alerts belonging to this group would have an invalid For value: ${notValidRules
                   .map((rule) => {
-                    const { alertName } = getAlertInfo(rule);
+                    const { alertName } = getAlertInfo(rule, groupInterval ?? '');
                     return alertName;
                   })
                   .join(',')}`
