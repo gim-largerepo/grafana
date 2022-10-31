@@ -713,7 +713,7 @@ const isStoreState = (something: unknown): something is StoreState => {
   }
 };
 
-const rulesInSameGroupHaveInvalidFor = (
+export const rulesInSameGroupHaveInvalidFor = (
   rulerRules: RulerRulesConfigDTO | null | undefined,
   group: string,
   folder_: string,
@@ -795,6 +795,7 @@ export const updateLotexNamespaceAndGroupAction = createAsyncThunk(
             }
           }
           // if renaming namespace - make new copies of all groups, then delete old namespace
+
           if (newNamespaceName !== namespaceName) {
             for (const group of rulesResult[namespaceName]) {
               await setRulerRuleGroup(
